@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Routing — Bigger Fish Demo</title>
+  <meta name="description" content="Simulated demo: a post-visit feedback email routes happy customers to a public review and unhappy customers to a private form and a manager alert.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .email-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 520px;
+      margin: 0 auto 24px;
+    }
+    .email-meta {
+      font-size: 0.78rem;
+      color: var(--muted-2);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    .email-meta strong { color: var(--muted); }
+    .email-subject {
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    .email-body {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0 0 18px;
+    }
+    .email-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .route-timeline {
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+
+    .stars {
+      letter-spacing: 2px;
+      font-size: 1.1rem;
+      color: var(--amber);
+    }
+    .stars .empty { color: var(--muted-2); }
+
+    .avg-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .avg-number {
+      font-size: 2rem;
+      font-weight: 800;
+    }
+    .avg-count { font-size: 0.85rem; color: var(--muted-2); }
+
+    .review-item, .feedback-item {
+      border-top: 1px solid var(--border);
+      padding: 12px 0;
+      font-size: 0.88rem;
+    }
+    .review-item:first-of-type, .feedback-item:first-of-type { border-top: none; }
+    .review-item .stars { display: block; margin-bottom: 4px; font-size: 0.95rem; }
+    .review-item .meta, .feedback-item .meta {
+      color: var(--muted-2);
+      font-size: 0.78rem;
+      margin-top: 4px;
+    }
+
+    .alert-banner {
+      background: rgba(255, 143, 143, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 0.86rem;
+      color: var(--text);
+    }
+    .alert-banner strong { color: var(--danger); }
+
+    .frozen-note {
+      font-size: 0.82rem;
+      color: var(--muted-2);
+      margin: 4px 0 16px;
+    }
+  </style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <a class="name" href="../index.html">Bigger Fish</a>
+      <span class="tag">Demo gallery</span>
+    </div>
+    <a class="back-link" href="../index.html">&larr; All demos</a>
+  </div>
+</header>
+
+<main id="main">
+  <div class="page-intro">
+    <p class="eyebrow">Demo 2 of 3</p>
+    <h1>Review routing</h1>
+    <p class="what-this-is">
+      This mirrors a real system called Outcome Engineer. After a table closes at a restaurant,
+      an automated email asks how the visit went. A happy answer routes to a public Google
+      review. An unhappy answer routes to a private feedback form and alerts the GM instead —
+      it never goes public. Click a response below and watch each side react.
+    </p>
+  </div>
+
+  <div class="email-card">
+    <p class="email-meta">
+      <strong>From:</strong> The Yard House Bistro &lt;feedback@theyardhousebistro.demo&gt;<br>
+      <strong>To:</strong> Table 14 guest
+    </p>
+    <p class="email-subject">How was your visit tonight?</p>
+    <p class="email-body">Thanks for dining with us! Tap below to let us know how it went — it takes two seconds.</p>
+    <div class="email-actions">
+      <button type="button" class="btn btn-success" id="btn-happy">&#128522; It was great</button>
+      <button type="button" class="btn btn-danger" id="btn-unhappy">&#128533; It wasn't great</button>
+    </div>
+  </div>
+
+  <ul class="timeline route-timeline" id="route-timeline" aria-label="Routing steps">
+    <li id="tl-1"><span class="mark" aria-hidden="true">1</span> Customer responds to the email</li>
+    <li id="tl-2"><span class="mark" aria-hidden="true">2</span> Response routes automatically</li>
+    <li id="tl-3"><span class="mark" aria-hidden="true">3</span> Outcome lands on the right side</li>
+  </ul>
+
+  <p id="status-live" role="status" aria-live="polite" class="visually-hidden"></p>
+
+  <div class="two-pane">
+    <section class="panel" aria-labelledby="public-heading">
+      <h2 id="public-heading"><span class="dot" id="public-dot"></span> Public: Google reviews</h2>
+      <div class="avg-row">
+        <span class="avg-number" id="avg-number">4.60</span>
+        <span class="avg-count" id="avg-count">out of 5 &middot; 40 reviews</span>
+      </div>
+      <p class="frozen-note" id="public-note">Only happy responses reach this list.</p>
+      <div id="review-list"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="private-heading">
+      <h2 id="private-heading"><span class="dot" id="private-dot"></span> Private: Manager alerts</h2>
+      <p class="frozen-note" id="private-count-note">0 private notes this week &middot; never shown publicly</p>
+      <div id="alert-area"></div>
+      <div id="feedback-list"></div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <button type="button" class="btn btn-ghost" id="reset-btn">Reset demo</button>
+  </div>
+
+  <div class="how-built">
+    <h2>How it's built</h2>
+    <p>
+      In production the trigger is a scheduled step fired when a POS ticket closes, sending the
+      feedback email through a transactional email service. The customer's click hits a routing
+      webhook that branches on the response: happy traffic gets a deep link straight to the
+      Google Business Profile review form; unhappy traffic posts to a private feedback form and
+      pushes an alert to the GM over Slack or SMS. This page simulates the branch and the
+      star-average recalculation entirely with local JavaScript — no email sends and nothing
+      posts to any real review platform.
+    </p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Bigger Fish — Jared Fischer</p>
+    <p><a href="mailto:jared.the.automator@gmail.com">jared.the.automator@gmail.com</a></p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var state = {
+    count: 40,
+    sum: 184, // 184 / 40 = 4.60
+    reviews: [],
+    feedback: []
+  };
+
+  var happyReviewPool = [
+    "Great service and the food came out fast. Will be back.",
+    "Our server was fantastic, drinks never ran empty. Loved it.",
+    "Best meal we've had in this neighborhood in a while.",
+    "Cozy spot, generous portions, friendly staff all around."
+  ];
+  var unhappyFeedbackPool = [
+    "Table sat for 20 minutes before anyone took our order.",
+    "Food came out cold and had to be sent back.",
+    "Asked for the check twice and waited a long time to pay.",
+    "Order came out wrong and nobody checked back on us."
+  ];
+
+  var avgNumberEl = document.getElementById("avg-number");
+  var avgCountEl = document.getElementById("avg-count");
+  var reviewListEl = document.getElementById("review-list");
+  var feedbackListEl = document.getElementById("feedback-list");
+  var alertAreaEl = document.getElementById("alert-area");
+  var privateCountNoteEl = document.getElementById("private-count-note");
+  var statusLive = document.getElementById("status-live");
+  var publicDot = document.getElementById("public-dot");
+  var privateDot = document.getElementById("private-dot");
+  var tl1 = document.getElementById("tl-1");
+  var tl2 = document.getElementById("tl-2");
+  var tl3 = document.getElementById("tl-3");
+
+  function starString(n) {
+    var full = Math.round(n);
+    var out = "";
+    for (var i = 0; i < 5; i++) {
+      out += i < full ? "&#9733;" : '<span class="empty">&#9733;</span>';
+    }
+    return out;
+  }
+
+  function renderReviews() {
+    var avg = state.sum / state.count;
+    avgNumberEl.textContent = avg.toFixed(2);
+    avgCountEl.textContent = "out of 5 · " + state.count + " reviews";
+
+    if (state.reviews.length === 0) {
+      reviewListEl.innerHTML = '<p class="empty-state">No new public reviews yet in this simulation.</p>';
+    } else {
+      reviewListEl.innerHTML = state.reviews
+        .map(function (r) {
+          return (
+            '<div class="review-item">' +
+            '<span class="stars" aria-hidden="true">' + starString(5) + "</span>" +
+            '<span class="visually-hidden">5 out of 5 stars.</span>' +
+            "<p>" + r.text + "</p>" +
+            '<p class="meta">Posted just now &middot; Google review</p>' +
+            "</div>"
+          );
+        })
+        .join("");
+    }
+  }
+
+  function renderFeedback() {
+    privateCountNoteEl.textContent =
+      state.feedback.length + " private note" + (state.feedback.length === 1 ? "" : "s") + " this week · never shown publicly";
+
+    if (state.feedback.length === 0) {
+      feedbackListEl.innerHTML = '<p class="empty-state">No private feedback yet in this simulation.</p>';
+    } else {
+      feedbackListEl.innerHTML = state.feedback
+        .map(function (f) {
+          return (
+            '<div class="feedback-item">' +
+            "<p>" + f.text + "</p>" +
+            '<p class="meta">Sent to GM only &middot; just now</p>' +
+            "</div>"
+          );
+        })
+        .join("");
+    }
+  }
+
+  function setTimelineStage(stage) {
+    [tl1, tl2, tl3].forEach(function (li, i) {
+      li.classList.toggle("active", i < stage);
+    });
+  }
+
+  function handleHappy() {
+    var text = happyReviewPool[state.reviews.length % happyReviewPool.length];
+    state.sum += 5;
+    state.count += 1;
+    state.reviews.unshift({ text: text });
+
+    setTimelineStage(3);
+    publicDot.className = "dot live";
+    privateDot.className = "dot";
+    alertAreaEl.innerHTML = "";
+    renderReviews();
+    renderFeedback();
+    statusLive.textContent =
+      "Happy response. Routed to a public Google review. Average is now " +
+      (state.sum / state.count).toFixed(2) +
+      " from " + state.count + " reviews.";
+  }
+
+  function handleUnhappy() {
+    var text = unhappyFeedbackPool[state.feedback.length % unhappyFeedbackPool.length];
+    state.feedback.unshift({ text: text });
+
+    setTimelineStage(3);
+    publicDot.className = "dot";
+    privateDot.className = "dot live";
+    alertAreaEl.innerHTML =
+      '<div class="alert-banner"><strong>GM alert:</strong> New private complaint for Table 14 — respond within the hour. This did not post publicly.</div>';
+    renderReviews();
+    renderFeedback();
+    statusLive.textContent =
+      "Unhappy response. Routed to a private form and the GM was alerted. Public average is unchanged at " +
+      (state.sum / state.count).toFixed(2) + ".";
+  }
+
+  document.getElementById("btn-happy").addEventListener("click", function () {
+    setTimelineStage(1);
+    window.setTimeout(function () { setTimelineStage(2); handleHappy(); }, 250);
+  });
+
+  document.getElementById("btn-unhappy").addEventListener("click", function () {
+    setTimelineStage(1);
+    window.setTimeout(function () { setTimelineStage(2); handleUnhappy(); }, 250);
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state = { count: 40, sum: 184, reviews: [], feedback: [] };
+    setTimelineStage(0);
+    publicDot.className = "dot";
+    privateDot.className = "dot";
+    alertAreaEl.innerHTML = "";
+    renderReviews();
+    renderFeedback();
+    statusLive.textContent = "Demo reset.";
+  });
+
+  renderReviews();
+  renderFeedback();
+})();
+</script>
+
+</body>
+</html>

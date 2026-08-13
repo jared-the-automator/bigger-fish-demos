@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Missed-Call Textback — Bigger Fish Demo</title>
+  <meta name="description" content="Simulated demo: a missed call at a small business automatically triggers a text before the caller gives up.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 28px;
+    }
+    .mode-switch button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 9px 18px;
+      border-radius: 999px;
+    }
+    .mode-switch button[aria-pressed="true"] {
+      background: var(--accent-solid);
+      color: var(--accent-solid-text);
+    }
+
+    .phone-frame {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-contact {
+      text-align: center;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .phone-contact .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent-solid);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      margin: 0 auto 8px;
+    }
+    .phone-contact .name { font-weight: 700; font-size: 0.95rem; }
+    .phone-contact .sub { font-size: 0.78rem; color: var(--muted-2); }
+
+    .phone-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .call-status {
+      margin: auto 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .call-status .ring-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+    }
+    .call-status .ring-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    .call-status .ring-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .call-status .ring-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.25; transform: scale(0.85); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    .call-status.ended { color: var(--muted-2); font-size: 0.88rem; }
+    .call-status.gone {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .thread {
+      display: flex;
+      flex-direction: column;
+      margin-top: 10px;
+    }
+    .bubble {
+      max-width: 82%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 0.87rem;
+      margin-bottom: 4px;
+    }
+    .bubble.biz {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      align-self: flex-start;
+    }
+    .bubble.caller {
+      background: var(--accent-solid);
+      color: var(--accent-solid-text);
+      border-bottom-right-radius: 4px;
+      align-self: flex-end;
+    }
+    .bubble-time {
+      font-size: 0.68rem;
+      color: var(--muted-2);
+      margin: 0 0 12px;
+    }
+    .bubble-time.caller { align-self: flex-end; }
+
+    .lead-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .lead-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .lead-time { font-size: 0.78rem; color: var(--muted-2); }
+    .lead-phone { font-weight: 700; margin: 0 0 4px; }
+    .lead-note { font-size: 0.85rem; color: var(--muted); margin: 4px 0 0; }
+    .lead-note.done { color: var(--success); font-weight: 600; }
+    .lead-note.msg { color: var(--text); }
+
+    #status-live {
+      font-size: 0.9rem;
+      color: var(--muted);
+      min-height: 1.4em;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <a class="name" href="../index.html">Bigger Fish</a>
+      <span class="tag">Demo gallery</span>
+    </div>
+    <a class="back-link" href="../index.html">&larr; All demos</a>
+  </div>
+</header>
+
+<main id="main">
+  <div class="page-intro">
+    <p class="eyebrow">Demo 1 of 3</p>
+    <h1>Missed-call textback</h1>
+    <p class="what-this-is">
+      A call comes into a small business, nobody picks up, and an automatic text goes to the
+      caller within seconds — before they give up and call the next name on the list. Step
+      through the simulation below on both sides: the caller's phone and the owner's dashboard.
+    </p>
+  </div>
+
+  <div class="mode-switch" role="group" aria-label="Choose whether textback automation is on">
+    <button type="button" id="mode-on" aria-pressed="true">With textback</button>
+    <button type="button" id="mode-off" aria-pressed="false">Without it</button>
+  </div>
+
+  <div class="two-pane">
+    <section class="panel" aria-labelledby="phone-heading">
+      <h2 id="phone-heading"><span class="dot" id="phone-dot"></span> Caller's phone</h2>
+      <div class="phone-frame">
+        <div class="phone-contact">
+          <div class="avatar" aria-hidden="true">R</div>
+          <p class="name">Riverside Plumbing</p>
+          <p class="sub">Local plumbing &amp; drain service</p>
+        </div>
+        <div class="phone-body" id="phone-screen"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="dash-heading">
+      <h2 id="dash-heading"><span class="dot" id="dash-dot"></span> Owner's dashboard</h2>
+      <div id="dash-body"></div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <button type="button" class="btn btn-primary" id="next-btn">Start the call</button>
+    <button type="button" class="btn btn-ghost" id="restart-btn">Restart</button>
+  </div>
+
+  <p id="status-live" role="status" aria-live="polite"></p>
+
+  <div class="how-built">
+    <h2>How it's built</h2>
+    <p>
+      In production this is a call-forwarding number with a missed-call webhook, a small
+      serverless function that fires the reply through an SMS gateway within seconds of the
+      call ending, and a CRM row written the moment that text sends — so the owner sees the
+      lead land in their dashboard in real time. This page simulates all three with local
+      JavaScript and a canned script. No call is placed and no text is sent anywhere.
+    </p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Bigger Fish — Jared Fischer</p>
+    <p><a href="mailto:jared.the.automator@gmail.com">jared.the.automator@gmail.com</a></p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var phoneScreen = document.getElementById("phone-screen");
+  var dashBody = document.getElementById("dash-body");
+  var phoneDot = document.getElementById("phone-dot");
+  var dashDot = document.getElementById("dash-dot");
+  var nextBtn = document.getElementById("next-btn");
+  var restartBtn = document.getElementById("restart-btn");
+  var statusLive = document.getElementById("status-live");
+  var modeOnBtn = document.getElementById("mode-on");
+  var modeOffBtn = document.getElementById("mode-off");
+
+  var emptyDash = '<p class="empty-state">Waiting for calls&hellip;</p>';
+  var idlePhone = '<p class="call-status">Press "Start the call" to simulate a customer calling Riverside Plumbing.</p>';
+  var ringingPhone =
+    '<div class="call-status">' +
+    'Calling Riverside Plumbing&hellip;' +
+    '<div class="ring-dots" aria-hidden="true"><span></span><span></span><span></span></div>' +
+    '</div>';
+
+  var steps = {
+    on: [
+      {
+        phoneDot: "", dashDot: "",
+        phone: idlePhone,
+        dash: emptyDash,
+        status: "Ready to simulate an incoming call.",
+        next: "Start the call"
+      },
+      {
+        phoneDot: "ringing", dashDot: "",
+        phone: ringingPhone,
+        dash: emptyDash,
+        status: "Phone is ringing at the front desk. Nobody is free to answer.",
+        next: "Let it ring out"
+      },
+      {
+        phoneDot: "", dashDot: "live",
+        phone: '<p class="call-status ended">Call ended &middot; No answer &middot; 0:34</p>',
+        dash:
+          '<div class="lead-card">' +
+          '<div class="lead-card-top"><span class="badge new">Missed Call</span><span class="lead-time">2:41 PM</span></div>' +
+          '<p class="lead-phone">(555) 019-2231</p>' +
+          '<p class="lead-note">Textback triggered automatically&hellip;</p>' +
+          "</div>",
+        status: "Call ended unanswered. The missed-call webhook just fired.",
+        next: "Send the automatic text"
+      },
+      {
+        phoneDot: "", dashDot: "live",
+        phone:
+          '<p class="call-status ended">Call ended &middot; No answer &middot; 0:34</p>' +
+          '<div class="thread">' +
+          '<div class="bubble biz">Sorry we missed your call! This is Riverside Plumbing — reply here and we’ll get right back to you.</div>' +
+          '<p class="bubble-time">Riverside Plumbing &middot; 2:41 PM</p>' +
+          "</div>",
+        dash:
+          '<div class="lead-card">' +
+          '<div class="lead-card-top"><span class="badge new">Missed Call</span><span class="lead-time">2:41 PM</span></div>' +
+          '<p class="lead-phone">(555) 019-2231</p>' +
+          '<p class="lead-note done">Auto-text sent &#10003;</p>' +
+          "</div>",
+        status: "Automatic text sent 12 seconds after the call ended.",
+        next: "Caller replies"
+      },
+      {
+        phoneDot: "", dashDot: "live",
+        phone:
+          '<p class="call-status ended">Call ended &middot; No answer &middot; 0:34</p>' +
+          '<div class="thread">' +
+          '<div class="bubble biz">Sorry we missed your call! This is Riverside Plumbing — reply here and we’ll get right back to you.</div>' +
+          '<p class="bubble-time">Riverside Plumbing &middot; 2:41 PM</p>' +
+          '<div class="bubble caller">Hi, my water heater is leaking pretty bad, can someone come out today?</div>' +
+          '<p class="bubble-time caller">You &middot; 2:42 PM</p>' +
+          "</div>",
+        dash:
+          '<div class="lead-card">' +
+          '<div class="lead-card-top"><span class="badge new">Missed Call</span><span class="lead-time">2:41 PM</span></div>' +
+          '<p class="lead-phone">(555) 019-2231</p>' +
+          '<p class="lead-note done">Auto-text sent &#10003;</p>' +
+          '<p class="lead-note msg">Reply: &ldquo;Water heater leaking, wants service today&rdquo;</p>' +
+          "</div>",
+        status: "Caller replied describing the problem.",
+        next: "Capture the lead"
+      },
+      {
+        phoneDot: "", dashDot: "live",
+        phone:
+          '<p class="call-status ended">Call ended &middot; No answer &middot; 0:34</p>' +
+          '<div class="thread">' +
+          '<div class="bubble biz">Sorry we missed your call! This is Riverside Plumbing — reply here and we’ll get right back to you.</div>' +
+          '<p class="bubble-time">Riverside Plumbing &middot; 2:41 PM</p>' +
+          '<div class="bubble caller">Hi, my water heater is leaking pretty bad, can someone come out today?</div>' +
+          '<p class="bubble-time caller">You &middot; 2:42 PM</p>' +
+          '<div class="bubble biz">Got it — we’ll call you back within 15 minutes to get you on today’s schedule.</div>' +
+          '<p class="bubble-time">Riverside Plumbing &middot; 2:42 PM</p>' +
+          "</div>",
+        dash:
+          '<div class="lead-card">' +
+          '<div class="lead-card-top"><span class="badge done">New Lead</span><span class="lead-time">2:41 PM</span></div>' +
+          '<p class="lead-phone">(555) 019-2231</p>' +
+          '<p class="lead-note done">Auto-text sent &#10003;</p>' +
+          '<p class="lead-note msg">Water heater leaking, wants service today</p>' +
+          '<p class="lead-note">Status: waiting on callback &middot; owner notified</p>' +
+          "</div>",
+        status: "Lead captured. A call that would have ended in a hang-up became a booked follow-up.",
+        next: null
+      }
+    ],
+    off: [
+      {
+        phoneDot: "", dashDot: "",
+        phone: idlePhone,
+        dash: emptyDash,
+        status: "Ready to simulate an incoming call.",
+        next: "Start the call"
+      },
+      {
+        phoneDot: "ringing", dashDot: "",
+        phone: ringingPhone,
+        dash: emptyDash,
+        status: "Phone is ringing at the front desk. Nobody is free to answer.",
+        next: "Let it ring out"
+      },
+      {
+        phoneDot: "", dashDot: "",
+        phone: '<p class="call-status ended">Call ended &middot; No answer &middot; 0:34</p>',
+        dash: '<p class="empty-state">No missed-call record. No text. No lead. There is nothing here to see because nothing fired.</p>',
+        status: "Call ended unanswered. Nothing else happens — there is no system watching for this.",
+        next: "See what the caller does"
+      },
+      {
+        phoneDot: "", dashDot: "",
+        phone: '<p class="call-status gone">They hang up, get no reply, and call the next plumber in the search results.</p>',
+        dash: '<p class="empty-state">Still nothing. This business never finds out the call happened.</p>',
+        status: "The caller is gone for good, and the business will never know they called.",
+        next: null
+      }
+    ]
+  };
+
+  var mode = "on";
+  var stepIndex = 0;
+
+  function render() {
+    var step = steps[mode][stepIndex];
+    phoneScreen.innerHTML = step.phone;
+    dashBody.innerHTML = step.dash;
+    phoneDot.className = "dot" + (step.phoneDot ? " " + step.phoneDot : "");
+    dashDot.className = "dot" + (step.dashDot ? " " + step.dashDot : "");
+    statusLive.textContent = step.status;
+
+    if (step.next) {
+      nextBtn.textContent = step.next;
+      nextBtn.dataset.restart = "";
+    } else {
+      nextBtn.textContent = "Play it again";
+      nextBtn.dataset.restart = "true";
+    }
+  }
+
+  function reset() {
+    stepIndex = 0;
+    render();
+  }
+
+  nextBtn.addEventListener("click", function () {
+    if (nextBtn.dataset.restart) {
+      stepIndex = 0;
+    } else {
+      stepIndex = Math.min(stepIndex + 1, steps[mode].length - 1);
+    }
+    render();
+  });
+
+  restartBtn.addEventListener("click", reset);
+
+  modeOnBtn.addEventListener("click", function () {
+    mode = "on";
+    modeOnBtn.setAttribute("aria-pressed", "true");
+    modeOffBtn.setAttribute("aria-pressed", "false");
+    reset();
+  });
+
+  modeOffBtn.addEventListener("click", function () {
+    mode = "off";
+    modeOnBtn.setAttribute("aria-pressed", "false");
+    modeOffBtn.setAttribute("aria-pressed", "true");
+    reset();
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

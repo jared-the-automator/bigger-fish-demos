@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Intake — Bigger Fish Demo</title>
+  <meta name="description" content="Simulated demo: a client intake form gets validated, filed, booked into an open slot, and confirmed automatically while the operator's dashboard updates live.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .error-summary {
+      background: rgba(255, 143, 143, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .error-summary h3 {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      color: var(--danger);
+    }
+    .error-summary ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 0.86rem;
+    }
+    .error-summary a { color: var(--danger); text-decoration: underline; }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 520px) {
+      .row-2 { grid-template-columns: 1fr; }
+    }
+
+    .example-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      margin-bottom: 18px;
+    }
+    .example-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    .processing-heading {
+      font-size: 1rem;
+      margin: 0 0 16px;
+    }
+
+    .confirm-block {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .confirm-block h3 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-2);
+      margin: 0 0 8px;
+    }
+    .mail-mock, .sms-mock {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.86rem;
+      margin-bottom: 14px;
+    }
+    .mail-mock p, .sms-mock p { margin: 0 0 4px; }
+    .mail-mock .subject { font-weight: 700; }
+    .sms-mock { border-radius: 14px; border-bottom-left-radius: 4px; max-width: 90%; }
+
+    .slot-list {
+      list-style: none;
+      margin: 0 0 20px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .slot-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+    }
+    .slot-list li.booked { opacity: 0.6; }
+
+    .feed-heading {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-2);
+      margin: 0 0 10px;
+    }
+
+    .lead-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .lead-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .lead-card p { margin: 2px 0; font-size: 0.86rem; color: var(--muted); }
+    .lead-card .lead-name { font-weight: 700; color: var(--text); font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <a class="name" href="../index.html">Bigger Fish</a>
+      <span class="tag">Demo gallery</span>
+    </div>
+    <a class="back-link" href="../index.html">&larr; All demos</a>
+  </div>
+</header>
+
+<main id="main">
+  <div class="page-intro">
+    <p class="eyebrow">Demo 3 of 3</p>
+    <h1>Automated intake</h1>
+    <p class="what-this-is">
+      A new client fills out a short intake form. The system validates it, files it, books an
+      open slot, and sends confirmations — while the operator's dashboard updates live on the
+      other side. Submit the form below to step through it.
+    </p>
+  </div>
+
+  <div class="two-pane">
+    <section class="panel" aria-labelledby="form-heading">
+      <h2 id="form-heading"><span class="dot" id="form-dot"></span> New client intake</h2>
+      <div id="form-area">
+        <button type="button" class="example-btn" id="fill-example">Fill example details</button>
+
+        <div id="error-summary-holder"></div>
+
+        <form id="intake-form" novalidate>
+          <div class="field">
+            <label for="f-name">Full name</label>
+            <input type="text" id="f-name" name="name" autocomplete="name">
+            <p class="field-error" id="err-name" hidden></p>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="f-phone">Phone</label>
+              <input type="tel" id="f-phone" name="phone" autocomplete="tel" aria-describedby="hint-phone">
+              <p class="field-hint" id="hint-phone">Digits only is fine, e.g. 5551234567</p>
+              <p class="field-error" id="err-phone" hidden></p>
+            </div>
+            <div class="field">
+              <label for="f-email">Email</label>
+              <input type="email" id="f-email" name="email" autocomplete="email">
+              <p class="field-error" id="err-email" hidden></p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="f-service">Service needed</label>
+            <select id="f-service" name="service">
+              <option value="" selected>Choose a service&hellip;</option>
+              <option value="Plumbing repair">Plumbing repair</option>
+              <option value="Drain cleaning">Drain cleaning</option>
+              <option value="Water heater install">Water heater install</option>
+              <option value="General inquiry">General inquiry</option>
+            </select>
+            <p class="field-error" id="err-service" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="f-slot">Preferred time</label>
+            <select id="f-slot" name="slot"></select>
+            <p class="field-error" id="err-slot" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="f-details">Anything we should know? <span class="field-hint" style="display:inline">(optional)</span></label>
+            <textarea id="f-details" name="details" rows="3"></textarea>
+          </div>
+
+          <div class="controls">
+            <button type="submit" class="btn btn-primary" id="submit-btn">Submit intake</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="processing-area" hidden>
+        <h3 class="processing-heading" id="processing-heading" tabindex="-1">Processing your request&hellip;</h3>
+        <ul class="timeline" id="processing-timeline" aria-label="Processing steps">
+          <li data-step="validate"><span class="mark" aria-hidden="true">1</span> Validating submission</li>
+          <li data-step="file"><span class="mark" aria-hidden="true">2</span> Filing new client record</li>
+          <li data-step="check"><span class="mark" aria-hidden="true">3</span> Checking calendar for the requested slot</li>
+          <li data-step="book"><span class="mark" aria-hidden="true">4</span> Booking confirmed</li>
+          <li data-step="email"><span class="mark" aria-hidden="true">5</span> Sending confirmation email</li>
+          <li data-step="sms"><span class="mark" aria-hidden="true">6</span> Sending confirmation text</li>
+        </ul>
+
+        <div id="confirm-output"></div>
+
+        <div class="controls">
+          <button type="button" class="btn btn-ghost" id="new-intake-btn" hidden>Start new intake</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="ops-heading">
+      <h2 id="ops-heading"><span class="dot" id="ops-dot"></span> Operator dashboard</h2>
+
+      <p class="feed-heading">Open slots</p>
+      <ul class="slot-list" id="slot-list"></ul>
+
+      <p class="feed-heading">Client feed</p>
+      <div id="lead-feed"></div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <button type="button" class="btn btn-ghost" id="reset-btn">Reset demo</button>
+  </div>
+
+  <p id="status-live" role="status" aria-live="polite" class="visually-hidden"></p>
+
+  <div class="how-built">
+    <h2>How it's built</h2>
+    <p>
+      In production this is a validated web form posting to a webhook, a server-side scheduler
+      that checks a real calendar for open slots before confirming one, a CRM insert for the new
+      client record, and confirmation sends through an email API and an SMS gateway — all
+      triggered by that one submission. This page simulates every step with local JavaScript
+      timers. Nothing is booked, filed, or sent anywhere.
+    </p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Bigger Fish — Jared Fischer</p>
+    <p><a href="mailto:jared.the.automator@gmail.com">jared.the.automator@gmail.com</a></p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var initialSlots = [
+    { id: "s1", label: "Tomorrow, 9:00 AM", booked: false },
+    { id: "s2", label: "Tomorrow, 1:30 PM", booked: false },
+    { id: "s3", label: "Thursday, 10:00 AM", booked: false },
+    { id: "s4", label: "Thursday, 3:00 PM", booked: false }
+  ];
+
+  var slots = [];
+  var leads = [];
+  var leadCounter = 0;
+
+  var formArea = document.getElementById("form-area");
+  var processingArea = document.getElementById("processing-area");
+  var processingHeading = document.getElementById("processing-heading");
+  var confirmOutput = document.getElementById("confirm-output");
+  var newIntakeBtn = document.getElementById("new-intake-btn");
+  var errorHolder = document.getElementById("error-summary-holder");
+  var form = document.getElementById("intake-form");
+  var slotSelect = document.getElementById("f-slot");
+  var slotListEl = document.getElementById("slot-list");
+  var leadFeedEl = document.getElementById("lead-feed");
+  var statusLive = document.getElementById("status-live");
+  var formDot = document.getElementById("form-dot");
+  var opsDot = document.getElementById("ops-dot");
+  var submitBtn = document.getElementById("submit-btn");
+
+  var fields = {
+    name: document.getElementById("f-name"),
+    phone: document.getElementById("f-phone"),
+    email: document.getElementById("f-email"),
+    service: document.getElementById("f-service"),
+    slot: document.getElementById("f-slot"),
+    details: document.getElementById("f-details")
+  };
+  var errors = {
+    name: document.getElementById("err-name"),
+    phone: document.getElementById("err-phone"),
+    email: document.getElementById("err-email"),
+    service: document.getElementById("err-service"),
+    slot: document.getElementById("err-slot")
+  };
+
+  function resetSlots() {
+    slots = initialSlots.map(function (s) { return { id: s.id, label: s.label, booked: false }; });
+  }
+
+  function renderSlotSelect() {
+    var open = slots.filter(function (s) { return !s.booked; });
+    slotSelect.innerHTML =
+      '<option value="" selected>' +
+      (open.length ? "Choose a time&hellip;" : "No open slots left") +
+      "</option>" +
+      open
+        .map(function (s) { return '<option value="' + s.id + '">' + s.label + "</option>"; })
+        .join("");
+    submitBtn.disabled = open.length === 0;
+    submitBtn.textContent = open.length === 0 ? "No open slots left" : "Submit intake";
+  }
+
+  function renderSlotList() {
+    slotListEl.innerHTML = slots
+      .map(function (s) {
+        return (
+          '<li class="' + (s.booked ? "booked" : "") + '">' +
+          "<span>" + s.label + "</span>" +
+          '<span class="badge ' + (s.booked ? "" : "done") + '">' + (s.booked ? "Booked" : "Open") + "</span>" +
+          "</li>"
+        );
+      })
+      .join("");
+  }
+
+  function renderLeadFeed() {
+    if (leads.length === 0) {
+      leadFeedEl.innerHTML = '<p class="empty-state">No clients yet in this simulation.</p>';
+      return;
+    }
+    leadFeedEl.innerHTML = leads
+      .map(function (l) {
+        return (
+          '<div class="lead-card">' +
+          '<div class="lead-card-top"><span class="lead-name">' + l.name + '</span><span class="badge ' +
+          (l.status === "Confirmed" ? "done" : "new") + '">' + l.status + "</span></div>" +
+          "<p>" + l.service + "</p>" +
+          "<p>" + l.slotLabel + "</p>" +
+          "<p>" + l.phone + " &middot; " + l.email + "</p>" +
+          (l.details ? "<p>&ldquo;" + l.details + "&rdquo;</p>" : "") +
+          "</div>"
+        );
+      })
+      .join("");
+  }
+
+  function clearErrors() {
+    Object.keys(errors).forEach(function (key) {
+      errors[key].hidden = true;
+      errors[key].textContent = "";
+      fields[key].removeAttribute("aria-invalid");
+      fields[key].removeAttribute("aria-describedby");
+    });
+    errorHolder.innerHTML = "";
+  }
+
+  function setError(key, message) {
+    errors[key].hidden = false;
+    errors[key].textContent = message;
+    fields[key].setAttribute("aria-invalid", "true");
+    var existingDescribe = key === "phone" ? "hint-phone err-phone" : "err-" + key;
+    fields[key].setAttribute("aria-describedby", existingDescribe);
+  }
+
+  function validate() {
+    clearErrors();
+    var found = [];
+
+    if (!fields.name.value.trim()) {
+      setError("name", "Enter a name.");
+      found.push({ id: "f-name", label: "Full name" });
+    }
+    var phoneVal = fields.phone.value.trim();
+    if (!phoneVal) {
+      setError("phone", "Enter a phone number.");
+      found.push({ id: "f-phone", label: "Phone" });
+    } else if (!/^[\d\s\-()+]{7,}$/.test(phoneVal)) {
+      setError("phone", "That doesn't look like a valid phone number.");
+      found.push({ id: "f-phone", label: "Phone" });
+    }
+    var emailVal = fields.email.value.trim();
+    if (!emailVal) {
+      setError("email", "Enter an email address.");
+      found.push({ id: "f-email", label: "Email" });
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      setError("email", "That doesn't look like a valid email address.");
+      found.push({ id: "f-email", label: "Email" });
+    }
+    if (!fields.service.value) {
+      setError("service", "Choose a service.");
+      found.push({ id: "f-service", label: "Service needed" });
+    }
+    if (!fields.slot.value) {
+      setError("slot", "Choose a time slot.");
+      found.push({ id: "f-slot", label: "Preferred time" });
+    }
+
+    if (found.length) {
+      errorHolder.innerHTML =
+        '<div class="error-summary" role="alert"><h3>' +
+        found.length + " thing" + (found.length === 1 ? "" : "s") + " need" + (found.length === 1 ? "s" : "") + " fixing</h3><ul>" +
+        found.map(function (f) { return '<li><a href="#' + f.id + '">' + f.label + "</a></li>"; }).join("") +
+        "</ul></div>";
+      document.getElementById(found[0].id).focus();
+      return false;
+    }
+    return true;
+  }
+
+  function step(el, delay) {
+    return new Promise(function (resolve) {
+      window.setTimeout(function () {
+        el.classList.add("active");
+        resolve();
+      }, delay);
+    });
+  }
+
+  function runProcessing(data) {
+    formArea.hidden = true;
+    processingArea.hidden = false;
+    processingHeading.focus();
+    confirmOutput.innerHTML = "";
+    newIntakeBtn.hidden = true;
+    formDot.className = "dot ringing";
+
+    var tl = {
+      validate: document.querySelector('[data-step="validate"]'),
+      file: document.querySelector('[data-step="file"]'),
+      check: document.querySelector('[data-step="check"]'),
+      book: document.querySelector('[data-step="book"]'),
+      email: document.querySelector('[data-step="email"]'),
+      sms: document.querySelector('[data-step="sms"]')
+    };
+    [tl.validate, tl.file, tl.check, tl.book, tl.email, tl.sms].forEach(function (li) {
+      li.classList.remove("active");
+    });
+
+    leadCounter += 1;
+    var lead = {
+      id: leadCounter,
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      service: data.service,
+      slotId: data.slotId,
+      slotLabel: data.slotLabel,
+      details: data.details,
+      status: "New"
+    };
+
+    step(tl.validate, 300)
+      .then(function () {
+        statusLive.textContent = "Submission validated.";
+        return step(tl.file, 500);
+      })
+      .then(function () {
+        leads.unshift(lead);
+        renderLeadFeed();
+        opsDot.className = "dot live";
+        statusLive.textContent = "Client record filed in the CRM.";
+        return step(tl.check, 500);
+      })
+      .then(function () {
+        statusLive.textContent = "Checking the calendar for " + data.slotLabel + ".";
+        return step(tl.book, 600);
+      })
+      .then(function () {
+        var slotObj = slots.filter(function (s) { return s.id === data.slotId; })[0];
+        if (slotObj) slotObj.booked = true;
+        renderSlotList();
+        renderSlotSelect();
+        lead.status = "Confirmed";
+        renderLeadFeed();
+        statusLive.textContent = data.slotLabel + " booked and reserved.";
+        return step(tl.email, 500);
+      })
+      .then(function () {
+        confirmOutput.innerHTML +=
+          '<div class="confirm-block"><h3>Confirmation email</h3><div class="mail-mock">' +
+          '<p class="subject">You\'re booked for ' + data.service + "</p>" +
+          "<p>Hi " + data.name + ", this confirms your " + data.service.toLowerCase() +
+          " appointment for " + data.slotLabel + ". Reply to this email if anything changes.</p>" +
+          "</div></div>";
+        statusLive.textContent = "Confirmation email sent to " + data.email + ".";
+        return step(tl.sms, 500);
+      })
+      .then(function () {
+        confirmOutput.innerHTML +=
+          '<div class="confirm-block"><h3>Confirmation text</h3><div class="sms-mock">' +
+          "You're all set — " + data.service + " on " + data.slotLabel +
+          ". Reply STOP to opt out." +
+          "</div></div>";
+        statusLive.textContent = "Confirmation text sent to " + data.phone + ". Intake complete.";
+        newIntakeBtn.hidden = false;
+        formDot.className = "dot";
+        newIntakeBtn.focus();
+      });
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!validate()) return;
+
+    var selectedOption = slotSelect.options[slotSelect.selectedIndex];
+    runProcessing({
+      name: fields.name.value.trim(),
+      phone: fields.phone.value.trim(),
+      email: fields.email.value.trim(),
+      service: fields.service.value,
+      slotId: fields.slot.value,
+      slotLabel: selectedOption ? selectedOption.textContent : "",
+      details: fields.details.value.trim()
+    });
+  });
+
+  document.getElementById("fill-example").addEventListener("click", function () {
+    fields.name.value = "Morgan Reyes";
+    fields.phone.value = "5551234567";
+    fields.email.value = "morgan.reyes@example.com";
+    fields.service.value = "Drain cleaning";
+    var firstOpenOption = slotSelect.querySelector("option[value]:not([value=''])");
+    if (firstOpenOption) slotSelect.value = firstOpenOption.value;
+    fields.details.value = "Kitchen sink draining very slowly, started this week.";
+  });
+
+  newIntakeBtn.addEventListener("click", function () {
+    form.reset();
+    clearErrors();
+    renderSlotSelect();
+    processingArea.hidden = true;
+    formArea.hidden = false;
+    document.getElementById("f-name").focus();
+    statusLive.textContent = "Ready for a new intake.";
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    resetSlots();
+    leads = [];
+    leadCounter = 0;
+    form.reset();
+    clearErrors();
+    renderSlotSelect();
+    renderSlotList();
+    renderLeadFeed();
+    processingArea.hidden = true;
+    formArea.hidden = false;
+    formDot.className = "dot";
+    opsDot.className = "dot";
+    statusLive.textContent = "Demo reset.";
+  });
+
+  resetSlots();
+  renderSlotSelect();
+  renderSlotList();
+  renderLeadFeed();
+})();
+</script>
+
+</body>
+</html>

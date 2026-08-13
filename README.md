@@ -1,7 +1,8 @@
 # Bigger Fish — Demo Gallery
 
-**Live site:** [https://jared-the-automator.github.io/bigger-fish-demos/](https://jared-the-automator.github.io/bigger-fish-demos/)
-*(URL will be confirmed once this repo is actually published to GitHub Pages — it is not live yet.)*
+### ▶ [Open the live gallery](https://jared-the-automator.github.io/bigger-fish-demos/)
+
+Every demo below is a working page you can open and click, not a code listing.
 
 A cold-email hook for business advisors and coaches: three working demos of small automation
 systems Bigger Fish builds for small operators (restaurants, trades, clinics, local services).

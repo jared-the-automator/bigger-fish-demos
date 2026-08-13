@@ -1,6 +1,6 @@
 # Bigger Fish — Demo Gallery
 
-**Live site:** [https://biggerfisch.github.io/bigger-fish-demos/](https://biggerfisch.github.io/bigger-fish-demos/)
+**Live site:** [https://jared-the-automator.github.io/bigger-fish-demos/](https://jared-the-automator.github.io/bigger-fish-demos/)
 *(URL will be confirmed once this repo is actually published to GitHub Pages — it is not live yet.)*
 
 A cold-email hook for business advisors and coaches: three working demos of small automation
@@ -11,14 +11,14 @@ client.
 
 ## Demos
 
-- [Missed-call textback](https://biggerfisch.github.io/bigger-fish-demos/missed-call-textback/) —
+- [Missed-call textback](https://jared-the-automator.github.io/bigger-fish-demos/missed-call-textback/) —
   a call rings out unanswered and an automatic text goes to the caller before they give up.
   Toggle "with" and "without" to see the counterfactual side by side.
-- [Review routing](https://biggerfisch.github.io/bigger-fish-demos/review-routing/) — mirrors the
+- [Review routing](https://jared-the-automator.github.io/bigger-fish-demos/review-routing/) — mirrors the
   real Outcome Engineer system. A happy post-visit response routes to a public Google review; an
   unhappy one routes to a private form and a GM alert. Watch the public star average react (or
   not react) depending on the path.
-- [Automated intake](https://biggerfisch.github.io/bigger-fish-demos/automated-intake/) — a short
+- [Automated intake](https://jared-the-automator.github.io/bigger-fish-demos/automated-intake/) — a short
   client intake form gets validated, filed, booked into an open slot, and confirmed by email and
   text, with the operator's dashboard updating live at each step.
 
